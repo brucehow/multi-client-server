@@ -41,16 +41,18 @@ void send_packet(response msg_type, int client_fd, char *client_id) {
 
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
-        fprintf(stderr,"Usage: %s [port] [max_players]\n", argv[0]);
+    if (argc < 4) {
+        fprintf(stderr,"Usage: %s [port] [lives] [max_players]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     int port = atoi(argv[1]);
-    int max_players = atoi(argv[2]);
+    int lives = atoi(argv[2]);
+    int max_players = atoi(argv[3]);
 
     // Declare global variables "game" and "clients:
     game = create_shared_memory(sizeof(GLOBALVAR));
     game->players = 0;
+    game->start_lives = lives;
     game->max_players = max_players;
     game->status = WAITING;
     clients = create_shared_memory(game->max_players * sizeof(CLIENTVAR));

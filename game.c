@@ -3,6 +3,7 @@
 typedef enum {EVEN, ODD, DOUB, CON} move_type;
 
 void roll_dice() {
+    srand(time(0));
     game->die1 = 1 + (rand() % 6);
     game->die2 = 1 + (rand() % 6);
 }
@@ -37,6 +38,9 @@ void game_handler(move_type type, int index, int val) {
         clients[index].lives--;
         printf("Client %s lost a life (%d lives remaining)\n", clients[index].client_id, clients[index].lives);
         send_packet(FAIL, clients[index].client_fd, clients[index].client_id);
+    } else {
+        printf("Client %s made it through this round (%d lives)\n", clients[index].client_id, clients[index].lives);
+        send_packet(PASS, clients[index].client_fd, clients[index].client_id);
     }
 }
 
@@ -128,7 +132,7 @@ void init_round() {
                         eliminate_client(i);
                         exit(EXIT_FAILURE);
                     } else {
-                        if(!message_handler(buf, i)) {
+                        if(!message_handler(buf, i) || clients[i].lives == 0) {
                             eliminate_client(i);
                             exit(EXIT_FAILURE);
                         }

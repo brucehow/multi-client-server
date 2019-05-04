@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <time.h>
 #include <sys/mman.h> // used for memory sharing
 
 #define PACKET_SIZE 14
@@ -35,6 +36,7 @@ typedef struct {
 typedef struct {
     int players;
     int max_players;
+    int start_lives;
     server_status status;
     int die1;
     int die2;

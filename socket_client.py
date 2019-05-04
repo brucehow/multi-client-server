@@ -73,11 +73,22 @@ try:
 
         # Make Move
 #    sleep(random.randint(5,30))
-        message = "000,MOV,CON,3"
+    while True:
+        message = "000,MOV,EVEN"
         print(f"Sending move {message}")
         sock.sendall(message.encode())
-        while True:
-            continue
+        amount_received = 0
+        while amount_received < amount_expected:
+            data = sock.recv(1024)
+            amount_received += len(data)
+            mess = data.decode()
+            while True:
+                if "PASS" in mess:
+                    print("Shit we lost a life!")
+                    break
+                if "FAIL" in mess:
+                    print("We made it through the round ok!")
+
 finally:
     print ('Closing socket')
     sock.close()
