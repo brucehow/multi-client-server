@@ -3,7 +3,6 @@
 typedef enum {EVEN, ODD, DOUB, CON} move_type;
 
 void roll_dice() {
-    srand(time(0));
     game->die1 = 1 + (rand() % 6);
     game->die2 = 1 + (rand() % 6);
 }
@@ -113,6 +112,7 @@ bool message_handler(char *message, int index) {
 }
 
 void init_round() {
+    game->ready_players = 0;
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
             switch(fork()) {
@@ -126,26 +126,40 @@ void init_round() {
                     if (read < 0) {
                         fprintf(stderr, "Failed to read from client %s\n", clients[i].client_id);
                         eliminate_client(i);
-                        exit(EXIT_FAILURE);
                     } else if (read == 0) {
                         printf("Client %s has left the game\n", clients[i].client_id);
                         eliminate_client(i);
-                        exit(EXIT_FAILURE);
                     } else {
                         if(!message_handler(buf, i) || clients[i].lives == 0) {
                             eliminate_client(i);
-                            exit(EXIT_FAILURE);
                         }
                     }
+                    game->ready_players++;
                     free(buf);
+                    exit(EXIT_SUCCESS);
                 }
             }
         }
     }
+    // Wait until all the players have sent their packet
+    while (game->ready_players != game->players);
+
+    // If there is a winner
+    if (game->players == 1) {
+        for (int i = 0; i < game->max_players; i++) {
+            if (clients[i].lives > 0) {
+                printf("Client %s has won!\n", clients[i].client_id);
+                game->status = FINISHED;
+                break;
+            }
+        }
+    }
+
 }
 
 void init_game() {
     printf("Initialising game\n");
+    srand(time(NULL));
     sendall_packet(START);
 
     int round = 1;
@@ -153,6 +167,5 @@ void init_game() {
         roll_dice();
         printf("\nRound %d (Dice rolled %d and %d)\n", round++, game->die1, game->die2);
         init_round();
-        break;
     }
 }

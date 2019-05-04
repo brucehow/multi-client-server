@@ -17,7 +17,7 @@ void connection_handler() {
                 fprintf(stderr, "Fork failed\n");
                 exit(EXIT_FAILURE);
             } case 0: {
-                close(server_fd);
+
                 char *buf = allocate_memory(PACKET_SIZE * sizeof(char));
 
                 // Try to read from the incoming client
@@ -37,16 +37,16 @@ void connection_handler() {
                     }
                     // Accept the connection
                     int client_index = add_client(client_fd);
+                    printf("IGNORE#%d\n", client_index);
 
                     // Check if the required player count is satisfied
                     if (game->players == game->max_players) {
                         printf("Sufficient players have joined\n");
                         game->status = PLAYING;
                         init_game();
-                        exit(EXIT_SUCCESS);
                     }
 
-                    // Watch for disconnects before the game starts
+                    /* NEED FIX Watch for disconnects before the game starts
                     while (game->status == WAITING) {
                         read = recv(client_fd, buf, PACKET_SIZE, 0);
                         printf("break");
@@ -57,7 +57,7 @@ void connection_handler() {
                             free(buf);
                             exit(EXIT_FAILURE);
                         }
-                    }
+                    }*/
                     free(buf);
                 } else {
                     close(client_fd);

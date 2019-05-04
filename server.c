@@ -92,4 +92,6 @@ int main(int argc, char *argv[]) {
 
     // Enters the infinite connection handling loop
     connection_handler();
+    close(server_fd);
+    exit(EXIT_SUCCESS);
 }

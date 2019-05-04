@@ -38,6 +38,7 @@ typedef struct {
     int max_players;
     int start_lives;
     server_status status;
+    int ready_players;
     int die1;
     int die2;
 } GLOBALVAR;

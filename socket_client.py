@@ -17,8 +17,17 @@ Then, start to add functions in the server code that actually 'run' the game in 
 
 import socket
 import random
+import time
 
 from time import sleep
+
+def countdown(t):
+    while t:
+        timeformat = '{:02d}'.format(t)
+        print(timeformat, end='\r')
+        time.sleep(1)
+        t -= 1
+
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -28,6 +37,7 @@ print ('Connecting to %s port %s' % server_address)
 sock.connect(server_address)
 
 count=0
+clientid="";
 try:
     while True:
         exit = False
@@ -47,6 +57,8 @@ try:
             mess = data.decode()
             if "WELCOME" in mess:
                 print(f"Successfully connected to server!")
+                clientid = mess[-3:]
+                print(f"Received client ID of {clientid}")
                 break
             elif "REJECT" in mess:
                 print("Server connection rejected!\nClient terminating...")
@@ -71,23 +83,27 @@ try:
                     print("Game has started")
                     break
 
-        # Make Move
-#    sleep(random.randint(5,30))
-    while True:
-        message = "000,MOV,EVEN"
-        print(f"Sending move {message}")
-        sock.sendall(message.encode())
-        amount_received = 0
-        while amount_received < amount_expected:
-            data = sock.recv(1024)
-            amount_received += len(data)
-            mess = data.decode()
-            while True:
-                if "PASS" in mess:
-                    print("Shit we lost a life!")
-                    break
-                if "FAIL" in mess:
-                    print("We made it through the round ok!")
+        tts = random.randint(7,8);
+        while True:
+            a = random.randint(0,2);
+            moves = ["EVEN", "ODD", "DOUB"]
+            message = clientid + ",MOV," + moves[a]
+            print(f"-> Sending {moves[a]} in ")
+            countdown(tts)
+
+            sock.sendall(message.encode())
+            amount_received = 0
+            while amount_received < amount_expected:
+                data = sock.recv(1024)
+                amount_received += len(data)
+                mess = data.decode()
+                while True:
+                    if "FAIL" in mess:
+                        print("LOST A LIFE")
+                        break
+                    if "PASS" in mess:
+                        print("MADE IT OK")
+                        break
 
 finally:
     print ('Closing socket')
