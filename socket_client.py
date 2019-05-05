@@ -83,13 +83,15 @@ try:
                     print("Game has started")
                     break
 
-        tts = random.randint(7,8);
+        #tts = random.randint(7,8);
+        #tts = 1
+        exit = False
         while True:
             a = random.randint(0,2);
             moves = ["EVEN", "ODD", "DOUB"]
             message = clientid + ",MOV," + moves[a]
-            print(f"-> Sending {moves[a]} in ")
-            countdown(tts)
+            print(f"-> Sending {message} in ")
+            #countdown(tts)
 
             sock.sendall(message.encode())
             amount_received = 0
@@ -104,7 +106,18 @@ try:
                     if "PASS" in mess:
                         print("MADE IT OK")
                         break
-
+                    if "ELIM" in mess:
+                        print("ELIMINATED")
+                        exit = True
+                        break
+                    if "VICT" in mess:
+                        print("WE WON")
+                        exit = True
+                        break
+            if exit:
+                break
+        if exit:
+            break
 finally:
     print ('Closing socket')
     sock.close()

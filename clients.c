@@ -7,7 +7,7 @@ void eliminate_client(int index) {
 
     clients[index].client_fd = -1;
     game->players--;
-    printf("Client %s has been eliminated (%d remaining)\n", clients[index].client_id, game->players);
+    printf("Client %s has been eliminated\n", clients[index].client_id);
 }
 
 void remove_client(int index) {

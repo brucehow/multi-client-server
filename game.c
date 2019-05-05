@@ -12,12 +12,14 @@ void game_handler(move_type type, int index, int val) {
 
     switch (type) {
         case EVEN: {
-            if ((game->die1 + game->die2) % 2 == 0) {
+            int sum = game->die1 + game->die2;
+            if (sum % 2 == 0 && game->die1 != game->die2) {
                 win = true;
                 break;
             }
         } case ODD: {
-            if ((game->die1 + game->die2) % 2 != 0) {
+            int sum = game->die1 + game->die2;
+            if (sum % 2 != 0 && sum > 5) {
                 win = true;
                 break;
             }
@@ -35,15 +37,16 @@ void game_handler(move_type type, int index, int val) {
     }
     if (!win) {
         clients[index].lives--;
-        printf("Client %s lost a life (%d lives remaining)\n", clients[index].client_id, clients[index].lives);
+        printf("Client %s lost a life (%d lives)\n", clients[index].client_id, clients[index].lives);
         send_packet(FAIL, clients[index].client_fd, clients[index].client_id);
     } else {
-        printf("Client %s made it through this round (%d lives)\n", clients[index].client_id, clients[index].lives);
+        printf("Client %s made it through (%d lives)\n", clients[index].client_id, clients[index].lives);
         send_packet(PASS, clients[index].client_fd, clients[index].client_id);
     }
 }
 
 bool message_handler(char *message, int index) {
+    printf("Message_handler for '%s'\n", message);
     int len = strlen(message);
 
     // Check for invalid message lengths
@@ -112,7 +115,9 @@ bool message_handler(char *message, int index) {
 }
 
 void init_round() {
-    game->ready_players = 0;
+    game->ready_players = 0; // Amount of players that have sent their packets
+    int round_players = game->players; // Players this round
+
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
             switch(fork()) {
@@ -120,7 +125,7 @@ void init_round() {
                     fprintf(stderr, "Fork failed\n");
                     exit(EXIT_FAILURE);
                 } case 0: {
-                    char *buf = allocate_memory(PACKET_SIZE * sizeof(char));
+                    char *buf = allocate_memory(PACKET_SIZE, sizeof(char));
 
                     int read = recv(clients[i].client_fd, buf, PACKET_SIZE, 0);
                     if (read < 0) {
@@ -130,29 +135,35 @@ void init_round() {
                         printf("Client %s has left the game\n", clients[i].client_id);
                         eliminate_client(i);
                     } else {
+                        printf("'%s' from client %s\n", buf, clients[i].client_id); // ##### DEBUG
                         if(!message_handler(buf, i) || clients[i].lives == 0) {
                             eliminate_client(i);
                         }
                     }
-                    game->ready_players++;
                     free(buf);
+                    game->ready_players++;
                     exit(EXIT_SUCCESS);
                 }
             }
         }
     }
     // Wait until all the players have sent their packet
-    while (game->ready_players != game->players);
+    while (game->ready_players != round_players);
+
+    printf("%d players remaining\n", game->players);
 
     // If there is a winner
     if (game->players == 1) {
         for (int i = 0; i < game->max_players; i++) {
             if (clients[i].lives > 0) {
-                printf("Client %s has won!\n", clients[i].client_id);
+                printf("\nClient %s has won!\n", clients[i].client_id);
                 game->status = FINISHED;
                 break;
             }
         }
+    } else if (game->players == 0) { // Draw
+        printf("\nDraw\n");
+        game->status = FINISHED;
     }
 
 }
@@ -165,7 +176,7 @@ void init_game() {
     int round = 1;
     while (game->status != FINISHED) {
         roll_dice();
-        printf("\nRound %d (Dice rolled %d and %d)\n", round++, game->die1, game->die2);
+        printf("\nRound %d (Dice rolled %d and %d - Total %d)\n", round++, game->die1, game->die2, game->die1+game->die2);
         init_round();
     }
 }

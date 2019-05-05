@@ -20,7 +20,7 @@ void sendall_packet(response msg_type) {
 }
 
 void send_packet(response msg_type, int client_fd, char *client_id) {
-    char *buf = allocate_memory(PACKET_SIZE * sizeof(char));
+    char *buf = allocate_memory(PACKET_SIZE, sizeof(char));
 
     switch (msg_type) {
         case WELCOME: sprintf(buf, "WELCOME,%s", client_id); break;

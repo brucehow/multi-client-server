@@ -6,8 +6,8 @@ void *create_shared_memory(size_t size) {
     return mmap(NULL, size, protection, visibility, 0, 0);
 }
 
-void *allocate_memory(size_t size) {
-    void *ptr = malloc(size);
+void *allocate_memory(size_t items, size_t size) {
+    void *ptr = calloc(items, size);
     if (ptr == NULL) {
         perror(__func__);
         exit(EXIT_FAILURE);

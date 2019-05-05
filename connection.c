@@ -18,7 +18,7 @@ void connection_handler() {
                 exit(EXIT_FAILURE);
             } case 0: {
 
-                char *buf = allocate_memory(PACKET_SIZE * sizeof(char));
+                char *buf = allocate_memory(PACKET_SIZE, sizeof(char));
 
                 // Try to read from the incoming client
                 int read = recv(client_fd, buf, PACKET_SIZE, 0);
@@ -59,6 +59,7 @@ void connection_handler() {
                         }
                     }*/
                     free(buf);
+                    exit(EXIT_SUCCESS);
                 } else {
                     close(client_fd);
                     exit(EXIT_FAILURE);

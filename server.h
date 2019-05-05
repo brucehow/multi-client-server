@@ -76,7 +76,7 @@ extern void *create_shared_memory(size_t size);
  * @param  size the required memory space
  * @return      pointer to the memory
  */
-extern void *allocate_memory(size_t size);
+extern void *allocate_memory(size_t items, size_t size);
 
 /**
  * Constantly listens for new client connection and handles them appropiately
