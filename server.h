@@ -17,6 +17,7 @@
 #include <sys/mman.h> // used for memory sharing
 
 #define PACKET_SIZE 14
+#define POLLING_RATE 30
 
 /**
  * Enumerations used for consistent packet messaging and server statuses
@@ -32,7 +33,10 @@ typedef struct {
     int client_fd;
     int lives;
     response result;
-
+    bool read_packet;
+    bool expect_packet;
+    bool sent_packet;
+    char packet[PACKET_SIZE];
 } CLIENTVAR;
 
 typedef struct {
@@ -40,7 +44,6 @@ typedef struct {
     int max_players;
     int start_lives;
     server_status status;
-    int ready_players;
     int die1;
     int die2;
 } GLOBALVAR;
@@ -83,7 +86,7 @@ extern void *allocate_memory(size_t items, size_t size);
 /**
  * Constantly listens for new client connection and handles them appropiately
  */
-extern void connection_handler();
+extern void connection_listener();
 
 /**
  * Adds a client to the list of existing clients. Checks for any previously

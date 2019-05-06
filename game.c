@@ -2,6 +2,7 @@
 
 typedef enum {EVEN, ODD, DOUB, CON} move_type;
 
+
 void roll_dice() {
     game->die1 = 1 + (rand() % 6);
     game->die2 = 1 + (rand() % 6);
@@ -112,64 +113,58 @@ response message_handler(char *message, int index) {
     return ELIM;
 }
 
-void init_round() {
-    game->ready_players = 0; // Amount of players that have sent their packets
-    int round_players = game->players; // Players this round
+void new_round() {
+    int required_ready = game->players;
+    int timeout = 5; // 5 seconds timeout
+    int time = 0;
 
-    for (int i = 0; i < game->max_players; i++) {
-        if (clients[i].client_fd != -1) {
-            switch(fork()) {
-                case -1: {
-                    fprintf(stderr, "Fork failed\n");
-                    exit(EXIT_FAILURE);
-                } case 0: {
-                    char *buf = allocate_memory(PACKET_SIZE, sizeof(char));
-
-                    int read = recv(clients[i].client_fd, buf, PACKET_SIZE, 0);
-                    if (read < 0) {
-                        fprintf(stderr, "Failed to read from client %s\n", clients[i].client_id);
-                        eliminate_client(i);
-                    } else if (read == 0) {
-                        printf("Client %s has left the game\n", clients[i].client_id);
-                        eliminate_client(i);
-                    } else {
-                        printf("### DEBUG ### received %s from client %s\n", buf, clients[i].client_id);
-                        clients[i].result = message_handler(buf, i);
-                    }
-                    free(buf);
-                    game->ready_players++;
-                    exit(EXIT_SUCCESS);
+    while (true) {
+        int ready_players = 0;
+        for (int i = 0; i < game->max_players; i++) {
+            if (clients[i].client_fd != -1 && clients[i].sent_packet && clients[i].read_packet) {
+                clients[i].result = message_handler(clients[i].packet, i);
+                if (clients[i].result == ELIM) {
+                    game->players--;
                 }
+                ready_players++;
+                clients[i].read_packet = false;
+                clients[i].expect_packet = true;
             }
         }
-    }
-    // Wait until all the players have sent their packet
-    printf("Need %d have ", round_players);
-    while (game->ready_players != round_players) {
-        printf("\b%d", game->ready_players);
-    }
-
-    if (game->players == 1) {
-        printf("%d player remaining\n", game->players);
-    } else {
-        printf("%d players remaining\n", game->players);
+        if (ready_players == required_ready || time >= POLLING_RATE * timeout) {
+            break;
+        }
+        time++;
+        usleep((int) (1E6 / POLLING_RATE));
     }
 
     // Send our responses back
     for (int i = 0; i < game->max_players; i++) {
-        if (clients[i].result == PASS || clients[i].result == FAIL) {
-            if (game->players == 1) {
-                victory_client(i);
-                game->status = FINISHED;
-                return;
+        if (clients[i].client_fd != -1) {
+            if (!clients[i].sent_packet) {
+                printf("Client %s failed to send a move\n", clients[i].client_id);
+                game->players--;
+                eliminate_client(i);
+            } else if (clients[i].result == PASS || clients[i].result == FAIL) {
+                if (game->players == 1) {
+                    printf("1 player remaining\n");
+                    victory_client(i);
+                    game->status = FINISHED;
+                } else {
+                    send_packet(clients[i].result, clients[i].client_fd, clients[i].client_id);
+                }
+            } else if (clients[i].result == ELIM) {
+                eliminate_client(i);
+            } else {
+                printf("Error reading response type for client %s\n", clients[i].client_id);
+                eliminate_client(i);
             }
-            send_packet(clients[i].result, clients[i].client_fd, clients[i].client_id);
-        } else if (clients[i].result == ELIM) {
-            eliminate_client(i);
-        } else {
-            printf("Error reading response type for client %s\n", clients[i].client_id);
-            eliminate_client(i);
+            clients[i].sent_packet = false;
         }
+    }
+
+    if (game->status == PLAYING) {
+        printf("%d players remaining\n", game->players);
     }
 
     // There is a draw (no winner)
@@ -188,6 +183,6 @@ void init_game() {
     while (game->status != FINISHED) {
         roll_dice();
         printf("\nRound %d (Dice rolled %d and %d - Total %d)\n", round++, game->die1, game->die2, game->die1+game->die2);
-        init_round();
+        new_round();
     }
 }

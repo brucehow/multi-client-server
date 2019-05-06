@@ -34,6 +34,7 @@ void send_packet(response msg_type, int client_fd, char *client_id) {
     }
 
     if (send(client_fd, buf, strlen(buf), 0) < 0) {
+        perror(__func__);
         fprintf(stderr, "Failed to send packet (%s) to client %s\n", buf, client_id);
     }
     free(buf);
@@ -90,8 +91,9 @@ int main(int argc, char *argv[]) {
 
     printf("Server created on port %d\n", port);
 
-    // Enters the infinite connection handling loop
-    connection_handler();
+    // Listen for connections in the child process
+    connection_listener();
+
     close(server_fd);
     exit(EXIT_SUCCESS);
 }
