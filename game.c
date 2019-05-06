@@ -115,7 +115,7 @@ response message_handler(char *message, int index) {
 
 void new_round() {
     int required_ready = game->players;
-    int timeout = 5; // 5 seconds timeout
+    int timeout = 3; // 3 seconds timeout
     int time = 0;
 
     while (true) {
@@ -138,28 +138,31 @@ void new_round() {
         usleep((int) (1E6 / POLLING_RATE));
     }
 
-    // Send our responses back
+    // Eliminate clients and check for missing expected packets
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
             if (!clients[i].sent_packet) {
                 printf("Client %s failed to send a move\n", clients[i].client_id);
                 game->players--;
                 eliminate_client(i);
-            } else if (clients[i].result == PASS || clients[i].result == FAIL) {
-                if (game->players == 1) {
-                    printf("1 player remaining\n");
-                    victory_client(i);
-                    game->status = FINISHED;
-                } else {
-                    send_packet(clients[i].result, clients[i].client_fd, clients[i].client_id);
-                }
             } else if (clients[i].result == ELIM) {
-                eliminate_client(i);
-            } else {
-                printf("Error reading response type for client %s\n", clients[i].client_id);
                 eliminate_client(i);
             }
             clients[i].sent_packet = false;
+        }
+    }
+
+    // Sends PASS/FAIL and VIC responses back
+    // Separate loop to ensures that elimination msg are printed first
+    for (int i = 0; i < game->max_players; i++) {
+        if (clients[i].client_fd != -1) {
+            if (game->players == 1) {
+                printf("1 player remaining\n");
+                victory_client(i);
+                game->status = FINISHED;
+            } else {
+                send_packet(clients[i].result, clients[i].client_fd, clients[i].client_id);
+            }
         }
     }
 

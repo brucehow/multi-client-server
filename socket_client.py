@@ -84,8 +84,7 @@ try:
                     print("Game has started")
                     break
 
-        tts = random.randint(2,8)
-        tts = 2
+        tts = random.randint(2,7)
         exit = False
         random.seed(datetime.now())
         while True:
@@ -93,7 +92,7 @@ try:
             moves = ["EVEN", "ODD", "DOUB"]
             message = clientid + ",MOV," + moves[a]
             print(f"-> Sending {message} in ")
-            #countdown(tts)
+            countdown(tts)
 
             sock.sendall(message.encode())
             amount_received = 0
