@@ -31,6 +31,8 @@ typedef struct {
     char client_id[4];
     int client_fd;
     int lives;
+    response result;
+
 } CLIENTVAR;
 
 typedef struct {
@@ -90,6 +92,12 @@ extern void connection_handler();
  * @return           the index containing the client in clients
  */
 extern int add_client(int client_fd);
+
+/**
+ * Sets a client to be the winner. Handles packet sending
+ * @param client_index the index of the client to send the packet
+ */
+extern void victory_client(int index);
 
 /**
  * Removes a client from the list of existing clients. Removed clients

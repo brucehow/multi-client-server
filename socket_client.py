@@ -19,6 +19,7 @@ import socket
 import random
 import time
 
+from datetime import datetime
 from time import sleep
 
 def countdown(t):
@@ -83,18 +84,20 @@ try:
                     print("Game has started")
                     break
 
-        #tts = random.randint(7,8);
-        #tts = 1
+        tts = random.randint(2,8)
+        tts = 3
         exit = False
+        random.seed(datetime.now())
         while True:
-            a = random.randint(0,2);
+            a = random.randint(0,2)
             moves = ["EVEN", "ODD", "DOUB"]
             message = clientid + ",MOV," + moves[a]
             print(f"-> Sending {message} in ")
-            #countdown(tts)
+            countdown(tts)
 
             sock.sendall(message.encode())
             amount_received = 0
+            print("Waiting for response")
             while amount_received < amount_expected:
                 data = sock.recv(1024)
                 amount_received += len(data)

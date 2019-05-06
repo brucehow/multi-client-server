@@ -1,5 +1,13 @@
 #include "server.h"
 
+void victory_client(int index) {
+    send_packet(VICT, clients[index].client_fd, clients[index].client_id);
+
+    close(clients[index].client_fd);
+
+    printf("\nWinner! Client %s has won!\n", clients[index].client_id);
+}
+
 void eliminate_client(int index) {
     send_packet(ELIM, clients[index].client_fd, clients[index].client_id);
 

@@ -24,7 +24,7 @@ void send_packet(response msg_type, int client_fd, char *client_id) {
 
     switch (msg_type) {
         case WELCOME: sprintf(buf, "WELCOME,%s", client_id); break;
-        case START: sprintf(buf, "START,%s,%d", client_id, game->players); break;
+        case START: sprintf(buf, "START,%d,%d", game->players, game->start_lives); break;
         case PASS: sprintf(buf, "%s,PASS", client_id); break;
         case FAIL: sprintf(buf, "%s,FAIL", client_id); break;
         case ELIM: sprintf(buf, "%s,ELIM", client_id); break;
@@ -34,7 +34,7 @@ void send_packet(response msg_type, int client_fd, char *client_id) {
     }
 
     if (send(client_fd, buf, strlen(buf), 0) < 0) {
-        fprintf(stderr, "Failed to send packet to client %s\n", client_id);
+        fprintf(stderr, "Failed to send packet (%s) to client %s\n", buf, client_id);
     }
     free(buf);
 }
