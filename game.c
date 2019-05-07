@@ -6,6 +6,7 @@ typedef enum {EVEN, ODD, DOUB, CON} move_type;
 void roll_dice() {
     game->die1 = 1 + (rand() % 6);
     game->die2 = 1 + (rand() % 6);
+    printf("(Dice rolled %d and %d - Total %d)\n", game->die1, game->die2, game->die1+game->die2);
 }
 
 response game_handler(move_type type, int index, int val) {
@@ -114,24 +115,24 @@ response message_handler(char *message, int index) {
 }
 
 void new_round() {
-    int required_ready = game->players;
+    int ready_required = game->players;
     int timeout = 3; // 3 seconds timeout
     int time = 0;
 
+    // Check whether all the clients have sent their packet
     while (true) {
-        int ready_players = 0;
+        int ready = 0;
         for (int i = 0; i < game->max_players; i++) {
-            if (clients[i].client_fd != -1 && clients[i].sent_packet && clients[i].read_packet) {
-                clients[i].result = message_handler(clients[i].packet, i);
-                if (clients[i].result == ELIM) {
-                    game->players--;
+            if (clients[i].client_fd != -1) {
+                if (clients[i].rec[0] == '\0') {
+                    clients[i].result = TIMEDOUT; // Indicate those who have not sent
+                } else {
+                    clients[i].result = message_handler(clients[i].rec, i);
+                    ready++;
                 }
-                ready_players++;
-                clients[i].read_packet = false;
-                clients[i].expect_packet = true;
             }
         }
-        if (ready_players == required_ready || time >= POLLING_RATE * timeout) {
+        if (ready == ready_required || time >= POLLING_RATE * timeout) {
             break;
         }
         time++;
@@ -141,51 +142,50 @@ void new_round() {
     // Eliminate clients and check for missing expected packets
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
-            if (!clients[i].sent_packet) {
+            if (clients[i].result == TIMEDOUT) {
                 printf("Client %s failed to send a move\n", clients[i].client_id);
-                game->players--;
                 eliminate_client(i);
             } else if (clients[i].result == ELIM) {
                 eliminate_client(i);
             }
-            clients[i].sent_packet = false;
+            bzero(clients[i].send, PACKET_SIZE);
         }
     }
-
-    // Sends PASS/FAIL and VIC responses back
-    // Separate loop to ensures that elimination msg are printed first
+    // Elimination done separately to check if VICT is required
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
             if (game->players == 1) {
-                printf("1 player remaining\n");
-                victory_client(i);
+                printf("1 player remaining\n\nWinner! Client %s has won!\n", clients[i].client_id);
                 game->status = FINISHED;
+                return;
             } else {
-                send_packet(clients[i].result, clients[i].client_fd, clients[i].client_id);
+                send_packet(clients[i].result, i);
             }
         }
     }
 
-    if (game->status == PLAYING) {
-        printf("%d players remaining\n", game->players);
-    }
+    printf("%d players remaining\n", game->players);
 
-    // There is a draw (no winner)
-    if (game->status == PLAYING && game->players == 0) {
+    // In the case where there is a draw
+    if (game->players == 0) {
         printf("\nDraw! There are no winners\n");
         game->status = FINISHED;
     }
 }
 
 void init_game() {
-    printf("Initialising game\n");
+    printf("Starting game\n");
     srand(time(NULL));
-    sendall_packet(START);
+    for (int i = 0; i < game->max_players; i++) {
+        if (clients[i].client_fd != -1) {
+            send_packet(START, i);
+        }
+    }
 
     int round = 1;
     while (game->status != FINISHED) {
+        printf("\nRound %d ", round++);
         roll_dice();
-        printf("\nRound %d (Dice rolled %d and %d - Total %d)\n", round++, game->die1, game->die2, game->die1+game->die2);
         new_round();
     }
 }

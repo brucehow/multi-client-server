@@ -13,42 +13,63 @@ CLIENTVAR *clients;
 GLOBALVAR *game;
 int server_fd;
 
-void sendall_packet(response msg_type) {
-    for (int i = 0; i < game->max_players; i++) {
-        send_packet(msg_type, clients[i].client_fd, clients[i].client_id);
-    }
-}
-
-void send_packet(response msg_type, int client_fd, char *client_id) {
-    char *buf = allocate_memory(PACKET_SIZE, sizeof(char));
-
-    switch (msg_type) {
-        case WELCOME: sprintf(buf, "WELCOME,%s", client_id); break;
-        case START: sprintf(buf, "START,%d,%d", game->players, game->start_lives); break;
-        case PASS: sprintf(buf, "%s,PASS", client_id); break;
-        case FAIL: sprintf(buf, "%s,FAIL", client_id); break;
-        case ELIM: sprintf(buf, "%s,ELIM", client_id); break;
-        case VICT: sprintf(buf, "VICT"); break;
-        case REJECT: sprintf(buf, "REJECT"); break;
-        case CANCEL: sprintf(buf, "CANCEL"); break;
-    }
-
-    if (send(client_fd, buf, strlen(buf), 0) < 0) {
-        perror(__func__);
-        fprintf(stderr, "Failed to send packet (%s) to client %s\n", buf, client_id);
-    }
-    free(buf);
-}
-
-
 int main(int argc, char *argv[]) {
-    if (argc < 4) {
-        fprintf(stderr,"Usage: %s [port] [lives] [max_players]\n", argv[0]);
-        exit(EXIT_FAILURE);
+    // Default configurations
+    int port = 4444;
+    int lives = 3;
+    int max_players = 10;
+    bool custom_port = false;
+    bool custom_lives = false;
+    bool custom_players = false;
+
+    opterr = 0; // Use custom error reporting
+    int opt;
+    while ((opt = getopt(argc, argv, OPT_LIST)) != -1) {
+        switch(opt) {
+            case 'p': {
+                port = atoi(optarg);
+                if (port == 0) {
+                    fprintf(stderr, "Illegal port value %s\n", optarg);
+                    fprintf(stderr, "Usage: %s [-p port]\n", argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+                custom_port = true;
+                break;
+            } case 'm': {
+                max_players = atoi(optarg);
+                if (max_players < 4) {
+                    fprintf(stderr, "Illegal max players value %s\n", optarg);
+                    fprintf(stderr, "Usage: %s [-m max_players]\n", argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+                custom_players = true;
+                break;
+            } case 'l': {
+                lives = atoi(optarg);
+                if (lives <= 0) {
+                    fprintf(stderr, "Illegal lives value %s\n", optarg);
+                    fprintf(stderr, "Usage: %s [-l lives]\n", argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+                custom_lives = true;
+                break;
+            } case '?': {
+                if (optopt == 'p') {
+                    fprintf(stderr, "Usage: %s [-p] [port]\n", argv[0]);
+					exit(EXIT_FAILURE);
+                } else if (optopt == 'm') {
+                    fprintf(stderr, "Usage: %s [-m] [max players]\n", argv[0]);
+					exit(EXIT_FAILURE);
+                } else if (optopt == 'l') {
+                    fprintf(stderr, "Usage: %s [-l] [lives]\n", argv[0]);
+					exit(EXIT_FAILURE);
+                } else {
+                    fprintf(stderr, "Illegal argument -%c\nUsage: %s [-p port] [-m max_players] [-l lives]\n", optopt, argv[0]);
+					exit(EXIT_FAILURE);
+                }
+            }
+        }
     }
-    int port = atoi(argv[1]);
-    int lives = atoi(argv[2]);
-    int max_players = atoi(argv[3]);
 
     // Declare global variables "game" and "clients:
     game = create_shared_memory(sizeof(GLOBALVAR));
@@ -57,6 +78,9 @@ int main(int argc, char *argv[]) {
     game->max_players = max_players;
     game->status = WAITING;
     clients = create_shared_memory(game->max_players * sizeof(CLIENTVAR));
+    for (int i = 0; i < game->max_players; i++) {
+        clients[i].client_fd = -1;
+    }
 
     // Create the socket to obtain the server file descriptor
     int err, opt_val;
@@ -89,11 +113,56 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Server created on port %d\n", port);
+    // Print the configurations
+    printf("------- Server Configs -------\n");
+    if (custom_port) {
+        printf("Server port: %d (specified)\n", port);
+    } else {
+        printf("Server port: %d (default)\n", port);
+    }
+    if (custom_lives) {
+        printf("Player lives: %d (specified)\n", game->start_lives);
+    } else {
+        printf("Player lives: %d (default)\n", game->start_lives);
+    }
+    if (custom_players) {
+        printf("Maximum players: %d (specified)\n", game->max_players);
+    } else {
+        printf("Maximum players: %d (default)\n", game->max_players);
+    }
+    printf("------------------------------\n\nServer started with the above settings\n");
 
-    // Listen for connections in the child process
-    connection_listener();
+    // Listen for connections and start lobby timeout
+    switch (fork()) {
+        case -1: {
+            fprintf(stderr, "Fork failed\n");
+            exit(EXIT_FAILURE);
+        } case 0: {
+            connection_listener();
+            exit(EXIT_SUCCESS);
+        } default: {
+
+        }
+    }
+
+    int timeout = 5; // 30 seconds timeout
+    int time = 0;
+
+    while (time < POLLING_RATE * timeout && game->players != game->max_players) {
+        time++;
+        usleep((int) (1E6 / POLLING_RATE));
+    }
+    if (game->players < 4) {
+        printf("Insufficient players have joined (4 required)\n");
+        game->status = EXIT;
+    } else {
+        printf("Sufficient players have joined\n");
+        game->status = PLAYING;
+        init_game();
+    }
 
     close(server_fd);
+    munmap(clients, sizeof(CLIENTVAR) * game->max_players);
+    munmap(game, sizeof(GLOBALVAR));
     exit(EXIT_SUCCESS);
 }

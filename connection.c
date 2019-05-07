@@ -1,7 +1,24 @@
 #include "server.h"
 
+void send_packet(response msg_type, int index) {
+    bzero(clients[index].send, PACKET_SIZE);
+
+    switch (msg_type) {
+        case WELCOME: sprintf(clients[index].send, "WELCOME,%s", clients[index].client_id); break;
+        case START: sprintf(clients[index].send, "START,%d,%d", game->players, game->start_lives); break;
+        case PASS: sprintf(clients[index].send, "%s,PASS", clients[index].client_id); break;
+        case FAIL: sprintf(clients[index].send, "%s,FAIL", clients[index].client_id); break;
+        case ELIM: sprintf(clients[index].send, "%s,ELIM", clients[index].client_id); break;
+        case VICT: sprintf(clients[index].send, "VICT"); break;
+        case REJECT: sprintf(clients[index].send, "REJECT"); break;
+        case CANCEL: sprintf(clients[index].send, "CANCEL"); break;
+        default: fprintf(stderr, "Unexpected msg_type\n"); exit(EXIT_FAILURE);
+    }
+}
+
 void connection_listener() {
-    while (game->status != FINISHED) {
+    // Listen to connections while the game is waiting or playing
+    while (game->status == WAITING || game->status == PLAYING) {
         struct sockaddr_in client;
         socklen_t client_len = sizeof(client);
 
@@ -24,7 +41,6 @@ void connection_listener() {
                 fprintf(stderr, "Fork failed\n");
                 exit(EXIT_FAILURE);
             } case 0: {
-
                 char *buf = allocate_memory(PACKET_SIZE, sizeof(char));
 
                 // Try to read from the incoming client
@@ -35,72 +51,96 @@ void connection_listener() {
                     close(client_fd);
                     exit(EXIT_FAILURE);
                 }
-                if (strcmp(buf, "INIT") == 0) {
-                    // Reject connections whilst the server is playing
-                    if (game->status == PLAYING) {
-                        send_packet(REJECT, client_fd, NULL);
-                        printf("New client connection rejected as game as started!\n");
-                        close(client_fd);
-                        exit(EXIT_FAILURE);
-                    }
-                    // Accept the connection
-                    int index = add_client(client_fd);
-
-                    // Check for player count requirements
-                    if (game->players == game->max_players && game->status == WAITING) {
-                        switch (fork()) {
-                            case -1: {
-                                fprintf(stderr, "Fork failed\n");
-                                exit(EXIT_FAILURE);
-                            } case 0: {
-                                game->status = PLAYING;
-                                printf("Sufficient players have joined\n");
-                                init_game();
-                                exit(EXIT_SUCCESS);
-                            }
-                        }
-                    }
-
-                    while (game->status != FINISHED) {
-                        bzero(buf, PACKET_SIZE);
-                        read = recv(client_fd, buf, PACKET_SIZE, 0);
-
-                        if (read < 0) {
-                            fprintf(stderr, "Failed to read from client %s\n", clients[index].client_id);
-                            game->players--;
-                            eliminate_client(index);
-                        } else if (read == 0) {
-                            if (game->status == WAITING) {
-                                remove_client(index);
-                                free(buf);
-                                exit(EXIT_FAILURE);
-                            } else if (game->status == PLAYING && clients[index].client_fd != -1) {
-                                printf("Client %s has left the game\n", clients[index].client_id);
-                                game->players--;
-                                eliminate_client(index);
-                                free(buf);
-                                exit(EXIT_FAILURE);
-                            }
-                        } else if (clients[index].expect_packet) {
-                            strcpy(clients[index].packet, buf);
-                            clients[index].read_packet = true;
-                            clients[index].sent_packet = true;
-                            clients[index].expect_packet = false;
-                        } else {
-                            fprintf(stderr, "Client %s sent an unexcepted packet\n", clients[index].client_id);
-                            game->players--;
-                            eliminate_client(index);
-                        }
-                        usleep((int) (1E6 / POLLING_RATE));
-                    }
+                // If new connection is not an INIT packet ignore
+                if (strcmp(buf, "INIT") != 0) {
                     close(client_fd);
                     free(buf);
-                    exit(EXIT_SUCCESS);
-                } else {
-                    free(buf);
-                    close(client_fd);
                     exit(EXIT_FAILURE);
                 }
+                // Reject connections whilst the server is playing
+                if (game->status == PLAYING) {
+                    if (send(client_fd, "REJECT", strlen("REJECT"), 0) < 0) {
+                        perror(__func__);
+                        fprintf(stderr, "Failed to send packet (REJECT) to new client\n");
+                    }
+                    printf("New client connection rejected as game as started!\n");
+                    close(client_fd);
+                    free(buf);
+                    exit(EXIT_FAILURE);
+                }
+
+                // Add the client to the global clients list
+                int index = add_client(client_fd);
+
+                // Loop that handles rec and send packets to the client as long as they are not eliminated
+                while (clients[index].client_fd != -1) {
+
+                    // Check if the client is the winner
+                    if (game->status == FINISHED && clients[index].client_fd != -1) {
+                        send_packet(VICT, index);
+                        if (send(clients[index].client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
+                            perror(__func__);
+                            fprintf(stderr, "Failed to send packet (%s) to client %s\n", clients[index].send, clients[index].client_id);
+                        }
+                        break;
+                    }
+
+                    // Checks for when the game can't start
+                    if (game->status == EXIT) {
+                        send_packet(CANCEL, index);
+                        if (send(clients[index].client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
+                            perror(__func__);
+                            fprintf(stderr, "Failed to send packet (%s) to client %s\n", clients[index].send, clients[index].client_id);
+                        }
+                        break;
+                    }
+
+                    // Checks for packets to send
+                    if (clients[index].send[0] != '\0') {
+                        if (send(clients[index].client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
+                            perror(__func__);
+                            fprintf(stderr, "Failed to send packet (%s) to client %s\n", clients[index].send, clients[index].client_id);
+                        }
+                        bzero(clients[index].send, PACKET_SIZE);
+                    }
+
+                    // Set a timeout for recv so it is not constantly blocked
+                    struct pollfd fd;
+                    fd.fd = clients[index].client_fd;
+                    fd.events = POLLIN;
+                    switch (poll(&fd, 1, (int) (1E3 / POLLING_RATE))) {
+                        case -1: {
+                            fprintf(stderr, "Poll failed\n");
+                            break;
+                        } case 0: {
+                            continue;
+                        }
+                    }
+                    bzero(buf, PACKET_SIZE);
+                    read = recv(clients[index].client_fd, buf, PACKET_SIZE, 0);
+
+                    if (read < 0) {
+                        fprintf(stderr, "Failed to read from client %s\n", clients[index].client_id);
+                        eliminate_client(index);
+                    } else if (read == 0) { // Client disconnected
+                        if (game->status == WAITING) {
+                            disconnect_client(index);
+                        } else if (clients[index].client_fd != -1) {
+                            printf("Client %s has left the game\n", clients[index].client_id);
+                            eliminate_client(index);
+                        }
+                    } else { // Received a packet
+                        while (clients[index].rec[0] != '\0') { // Wait for existing packet to be read
+                            usleep((int) (1E6 / POLLING_RATE));
+                        }
+                        strcpy(clients[index].rec, buf);
+                    }
+                    usleep((int) (1E6 / POLLING_RATE));
+                }
+
+                close(client_fd);
+                free(buf);
+                exit(EXIT_SUCCESS);
             }
         }
     }
