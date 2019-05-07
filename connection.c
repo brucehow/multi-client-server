@@ -1,7 +1,7 @@
 #include "server.h"
 
 void send_packet(response msg_type, int index) {
-    bzero(clients[index].send, PACKET_SIZE);
+    memset(clients[index].send, '\0', PACKET_SIZE);
 
     switch (msg_type) {
         case WELCOME: sprintf(clients[index].send, "WELCOME,%s", clients[index].client_id); break;
@@ -72,13 +72,22 @@ void connection_listener() {
                 // Add the client to the global clients list
                 int index = add_client(client_fd);
 
-                // Loop that handles rec and send packets to the client as long as they are not eliminated
-                while (clients[index].client_fd != -1) {
-
+                // Loop that handles rec and send packets to the client
+                while (true) {
                     // Check if the client is the winner
                     if (game->status == FINISHED && clients[index].client_fd != -1) {
                         send_packet(VICT, index);
-                        if (send(clients[index].client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
+                        if (send(client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
+                            perror(__func__);
+                            fprintf(stderr, "Failed to send packet (%s) to client %s\n", clients[index].send, clients[index].client_id);
+                        }
+                        break;
+                    }
+
+                    // Check if the client is eliminated
+                    if (clients[index].client_fd == -1) {
+                        send_packet(ELIM, index);
+                        if (send(client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
                             perror(__func__);
                             fprintf(stderr, "Failed to send packet (%s) to client %s\n", clients[index].send, clients[index].client_id);
                         }
@@ -88,7 +97,7 @@ void connection_listener() {
                     // Checks for when the game can't start
                     if (game->status == EXIT) {
                         send_packet(CANCEL, index);
-                        if (send(clients[index].client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
+                        if (send(client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
                             perror(__func__);
                             fprintf(stderr, "Failed to send packet (%s) to client %s\n", clients[index].send, clients[index].client_id);
                         }
@@ -97,16 +106,16 @@ void connection_listener() {
 
                     // Checks for packets to send
                     if (clients[index].send[0] != '\0') {
-                        if (send(clients[index].client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
+                        if (send(client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
                             perror(__func__);
                             fprintf(stderr, "Failed to send packet (%s) to client %s\n", clients[index].send, clients[index].client_id);
                         }
-                        bzero(clients[index].send, PACKET_SIZE);
+                        memset(clients[index].send, '\0', PACKET_SIZE);
                     }
 
                     // Set a timeout for recv so it is not constantly blocked
                     struct pollfd fd;
-                    fd.fd = clients[index].client_fd;
+                    fd.fd = client_fd;
                     fd.events = POLLIN;
                     switch (poll(&fd, 1, (int) (1E3 / POLLING_RATE))) {
                         case -1: {
@@ -116,8 +125,8 @@ void connection_listener() {
                             continue;
                         }
                     }
-                    bzero(buf, PACKET_SIZE);
-                    read = recv(clients[index].client_fd, buf, PACKET_SIZE, 0);
+                    memset(buf, '\0', PACKET_SIZE);
+                    read = recv(client_fd, buf, PACKET_SIZE, 0);
 
                     if (read < 0) {
                         fprintf(stderr, "Failed to read from client %s\n", clients[index].client_id);
@@ -130,8 +139,8 @@ void connection_listener() {
                             eliminate_client(index);
                         }
                     } else { // Received a packet
-                        while (clients[index].rec[0] != '\0') { // Wait for existing packet to be read
-                            usleep((int) (1E6 / POLLING_RATE));
+                        if (clients[index].rec[0] != '\0') { // Not expecting packet
+                            fprintf(stderr, "Client %s sent an unexcepted packet\n", clients[index].client_id);
                         }
                         strcpy(clients[index].rec, buf);
                     }

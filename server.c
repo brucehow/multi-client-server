@@ -145,12 +145,18 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    int timeout = 5; // 30 seconds timeout
+    int timeout = 30; // 30 seconds timeout
     int time = 0;
 
+    printf("The game will commence in 30 seconds\n");
     while (time < POLLING_RATE * timeout && game->players != game->max_players) {
         time++;
         usleep((int) (1E6 / POLLING_RATE));
+        if (time == POLLING_RATE * 10) {
+            printf("The game will commence in 20 seconds\n");
+        } else if (time == POLLING_RATE * 20) {
+            printf("The game will commence in 10 seconds\n");
+        }
     }
     if (game->players < 4) {
         printf("Insufficient players have joined (4 required)\n");

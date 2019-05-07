@@ -1,7 +1,6 @@
 #include "server.h"
 
 void eliminate_client(int index) {
-    send_packet(ELIM, index);
     clients[index].client_fd = -1;
     game->players--;
     printf("Client %s has been eliminated\n", clients[index].client_id);
@@ -20,8 +19,7 @@ int add_client(int client_fd) {
             sprintf(clients[i].client_id, "%03d", i);
             clients[i].client_fd = client_fd;
             clients[i].lives = game->start_lives;
-            bzero(clients[i].send, PACKET_SIZE);
-            bzero(clients[i].rec, PACKET_SIZE);
+            memset(clients[i].rec, '\0', PACKET_SIZE);
             game->players++;
 
             // Send welcome packet
@@ -30,7 +28,7 @@ int add_client(int client_fd) {
                 perror(__func__);
                 fprintf(stderr, "Failed to send packet (%s) to new client\n", clients[i].send);
             }
-            bzero(clients[i].send, PACKET_SIZE);
+            memset(clients[i].send, '\0', PACKET_SIZE);
 
             printf("New client %s has connected (%d/%d)\n", clients[i].client_id, game->players, game->max_players);
             return i;

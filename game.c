@@ -37,20 +37,13 @@ response game_handler(move_type type, int index, int val) {
             }
         }
     }
-    if (!win) {
-        clients[index].lives--;
-        printf("Client %s lost a life (%d lives)\n", clients[index].client_id, clients[index].lives);
-        if (clients[index].lives == 0) {
-            return ELIM;
-        }
-        return FAIL;
-    } else {
-        printf("Client %s made it through (%d lives)\n", clients[index].client_id, clients[index].lives);
+    if (win) {
         return PASS;
     }
+    return FAIL;
 }
 
-response message_handler(char *message, int index) {
+response message_handler(char message[], int index) {
     int len = strlen(message);
 
     // Check for invalid message lengths
@@ -66,7 +59,9 @@ response message_handler(char *message, int index) {
     }
 
     // Tokenise the message with the ',' delimiter
-    char *token = strtok(message, ",");
+    char temp[PACKET_SIZE];
+    strcpy(temp, message);
+    char *token = strtok(temp, ",");
     int sections = 1;
 
     while (token != NULL) {
@@ -120,47 +115,55 @@ void new_round() {
     int time = 0;
 
     // Check whether all the clients have sent their packet
-    while (true) {
+    while (time < POLLING_RATE * timeout) {
         int ready = 0;
         for (int i = 0; i < game->max_players; i++) {
             if (clients[i].client_fd != -1) {
                 if (clients[i].rec[0] == '\0') {
-                    clients[i].result = TIMEDOUT; // Indicate those who have not sent
+                    clients[i].result = TIMEOUT; // Indicate those who have not sent
                 } else {
                     clients[i].result = message_handler(clients[i].rec, i);
                     ready++;
                 }
             }
         }
-        if (ready == ready_required || time >= POLLING_RATE * timeout) {
+        if (ready == ready_required) {
             break;
         }
         time++;
         usleep((int) (1E6 / POLLING_RATE));
     }
 
-    // Eliminate clients and check for missing expected packets
+    // Elimination handler
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
-            if (clients[i].result == TIMEDOUT) {
+            if (clients[i].result == TIMEOUT) {
                 printf("Client %s failed to send a move\n", clients[i].client_id);
                 eliminate_client(i);
             } else if (clients[i].result == ELIM) {
                 eliminate_client(i);
+            } else if (clients[i].result == FAIL) {
+                clients[i].lives--;
+                printf("Client %s lost a life (%d lives)\n", clients[i].client_id, clients[i].lives);
+                if (clients[i].lives == 0) {
+                    eliminate_client(i);
+                }
+            } else if (clients[i].result == PASS) {
+                printf("Client %s made it through (%d lives)\n", clients[i].client_id, clients[i].lives);
             }
-            bzero(clients[i].send, PACKET_SIZE);
         }
+        memset(clients[i].rec, '\0', PACKET_SIZE);
     }
-    // Elimination done separately to check if VICT is required
+
+    // Remaining players packet senders
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
             if (game->players == 1) {
                 printf("1 player remaining\n\nWinner! Client %s has won!\n", clients[i].client_id);
                 game->status = FINISHED;
-                return;
-            } else {
-                send_packet(clients[i].result, i);
+                return; // No more players left to send packets
             }
+            send_packet(clients[i].result, i);
         }
     }
 

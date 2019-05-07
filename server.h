@@ -25,7 +25,7 @@
  * Enumerations used for consistent packet messaging and server statuses
  */
 typedef enum {WAITING, PLAYING, FINISHED, EXIT} server_status;
-typedef enum {WELCOME, START, PASS, FAIL, ELIM, VICT, REJECT, CANCEL, TIMEDOUT} response;
+typedef enum {WELCOME, START, PASS, FAIL, ELIM, VICT, REJECT, CANCEL, TIMEOUT} response;
 
 /**
  * Global variables used with mmap for memory sharing
