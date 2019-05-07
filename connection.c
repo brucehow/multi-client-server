@@ -134,9 +134,11 @@ void connection_listener() {
                     } else if (read == 0) { // Client disconnected
                         if (game->status == WAITING) {
                             disconnect_client(index);
+                            break;
                         } else if (clients[index].client_fd != -1) {
                             printf("Client %s has left the game\n", clients[index].client_id);
                             eliminate_client(index);
+                            break;
                         }
                     } else { // Received a packet
                         if (clients[index].rec[0] != '\0') { // Not expecting packet

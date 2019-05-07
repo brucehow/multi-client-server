@@ -7,7 +7,6 @@ void eliminate_client(int index) {
 }
 
 void disconnect_client(int index) {
-    close(clients[index].client_fd);
     clients[index].client_fd = -1;
     game->players--;
     printf("Client %s has prematurely disconnected (%d/%d)\n", clients[index].client_id, game->players, game->max_players);
