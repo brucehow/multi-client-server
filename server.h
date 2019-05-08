@@ -1,7 +1,9 @@
 /**
  * CITS3002: Networks Project
+ * RNG Battle Royale game simulation utilising a client-server approach.
  *
  * Name: Bruce How (22242664)
+ * Date: 07/05/2019
 **/
 
 #include <stdio.h>
