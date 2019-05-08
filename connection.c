@@ -134,7 +134,6 @@ void connection_listener() {
                         eliminate_client(index);
                     } else if (read == 0) { // Client disconnected
                         if (game->status == WAITING) {
-                            game->players--;
                             disconnect_client(index);
                             break;
                         } else if (clients[index].client_fd != -1) {
@@ -145,7 +144,15 @@ void connection_listener() {
                         }
                     } else { // Received a packet
                         if (clients[index].rec[0] != '\0') { // Not expecting packet
-                            fprintf(stderr, "Client %s sent an unexcepted packet\n", clients[index].client_id);
+                            printf("Client %s sent an unexcepted packet\n", clients[index].client_id);
+                            if (++(clients[index].unexpected) == MAX_PACKET_OVERFLOW) {
+                                printf("Client %s sent too many unexpected packets\n", clients[index].client_id);
+                                game->players--;
+                                eliminate_client(index);
+                            }
+                            while (clients[index].rec[0] != '\0') {
+                                usleep((int) (1E6 / POLLING_RATE));
+                            }
                         }
                         strcpy(clients[index].rec, buf);
                     }

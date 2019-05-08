@@ -111,7 +111,7 @@ response message_handler(char message[], int index) {
 
 void new_round() {
     int ready_required = game->players;
-    int timeout = 3; // 3 seconds timeout
+    int timeout = 2; // 2 seconds timeout
     int time = 0;
 
     // Check whether all the clients have sent their packet
@@ -178,13 +178,19 @@ void new_round() {
 
     if (game->players == 0) {
         game->status = FINISHED;
-        printf("\nDraw! Clients");
+        int draw_players = 0;
+        printf("\nDraw!");
         for (int i = 0; i < game->max_players; i++ ) {
             if (clients[i].client_fd != -1) {
-                printf( " %s", clients[i].client_id);
+                printf(" Client %s,", clients[i].client_id);
+                draw_players++;
             }
         }
-        printf(" have won!\n");
+        if (draw_players == 0) { // Unusual case, remaining players have all left
+            printf(" There are no winners\n");
+        } else {
+            printf("\b have won!\n");
+        }
     } else if (game->players == 1) {
         game->status = FINISHED;
         for (int i = 0; i < game->max_players; i++) {
@@ -198,7 +204,9 @@ void new_round() {
 
 void init_game() {
     printf("Starting game\n");
-    srand(time(NULL));
+    usleep((int) (1E6 / POLLING_RATE));
+    srand((int) (time(NULL) * getpid())); // Seeds rand
+
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
             send_packet(START, i);

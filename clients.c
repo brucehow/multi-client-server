@@ -7,17 +7,18 @@ void eliminate_client(int index) {
 
 void disconnect_client(int index) {
     clients[index].client_fd = -1;
-    printf("Client %s has disconnected prematurely (%d/%d)\n", clients[index].client_id, game->players, game->max_players);
+    printf("Client %s has disconnected prematurely (%d/%d)\n", clients[index].client_id, --(game->players), game->max_players);
 }
 
 int add_client(int client_fd) {
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd == -1) {
-            sprintf(clients[i].client_id, "%03d", i);
+            srand(client_fd); // Seeds rand
+            sprintf(clients[i].client_id, "%d%02d", rand() % 10, i);
             clients[i].client_fd = client_fd;
             clients[i].lives = game->start_lives;
+            clients[i].unexpected = 0;
             memset(clients[i].rec, '\0', PACKET_SIZE);
-            game->players++;
 
             // Send welcome packet
             send_packet(WELCOME, i);
@@ -27,7 +28,7 @@ int add_client(int client_fd) {
             }
             memset(clients[i].send, '\0', PACKET_SIZE);
 
-            printf("New client %s has connected (%d/%d)\n", clients[i].client_id, game->players, game->max_players);
+            printf("New client %s has connected (%d/%d)\n", clients[i].client_id, ++(game->players), game->max_players);
             return i;
         }
     }

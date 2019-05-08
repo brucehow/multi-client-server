@@ -22,6 +22,7 @@
 #define PACKET_SIZE 14
 #define POLLING_RATE 30
 #define OPT_LIST "p:m:l:"
+#define MAX_PACKET_OVERFLOW 3
 
 /**
  * Enumerations used for consistent packet messaging and server statuses
@@ -39,6 +40,7 @@ typedef struct {
     response result;
     char rec[PACKET_SIZE];
     char send[PACKET_SIZE];
+    int unexpected;
 } CLIENTVAR;
 
 typedef struct {
