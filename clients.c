@@ -2,14 +2,12 @@
 
 void eliminate_client(int index) {
     clients[index].client_fd = -1;
-    game->players--;
     printf("Client %s has been eliminated\n", clients[index].client_id);
 }
 
 void disconnect_client(int index) {
     clients[index].client_fd = -1;
-    game->players--;
-    printf("Client %s has prematurely disconnected (%d/%d)\n", clients[index].client_id, game->players, game->max_players);
+    printf("Client %s has disconnected prematurely (%d/%d)\n", clients[index].client_id, game->players, game->max_players);
 }
 
 int add_client(int client_fd) {

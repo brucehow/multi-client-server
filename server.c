@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
                 break;
             } case 'm': {
                 max_players = atoi(optarg);
-                if (max_players < 4) {
+                if (max_players < 4 || max_players > 99) {
                     fprintf(stderr, "Illegal max players value %s\n", optarg);
                     fprintf(stderr, "Usage: %s [-m max_players]\n", argv[0]);
                     exit(EXIT_FAILURE);
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
                 break;
             } case 'l': {
                 lives = atoi(optarg);
-                if (lives <= 0) {
+                if (lives <= 0 || lives > 99) {
                     fprintf(stderr, "Illegal lives value %s\n", optarg);
                     fprintf(stderr, "Usage: %s [-l lives]\n", argv[0]);
                     exit(EXIT_FAILURE);
@@ -145,10 +145,14 @@ int main(int argc, char *argv[]) {
     while (time < POLLING_RATE * timeout && game->players != game->max_players) {
         time++;
         usleep((int) (1E6 / POLLING_RATE));
-        if (time == POLLING_RATE * 10) {
-            printf("The game will commence in 20 seconds\n");
-        } else if (time == POLLING_RATE * 20) {
-            printf("The game will commence in 10 seconds\n");
+        switch(time) {
+            case POLLING_RATE*10: printf("The game will commence in 20 seconds\n"); break;
+            case POLLING_RATE*20: printf("The game will commence in 10 seconds\n"); break;
+            case POLLING_RATE*25: printf("The game will commence in 5 seconds\n"); break;
+            case POLLING_RATE*26: printf("The game will commence in 4 seconds\n"); break;
+            case POLLING_RATE*27: printf("The game will commence in 3 seconds\n"); break;
+            case POLLING_RATE*28: printf("The game will commence in 2 seconds\n"); break;
+            case POLLING_RATE*29: printf("The game will commence in 1 second\n"); break;
         }
     }
     if (game->players < 4) {

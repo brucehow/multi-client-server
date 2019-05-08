@@ -130,13 +130,16 @@ void connection_listener() {
 
                     if (read < 0) {
                         fprintf(stderr, "Failed to read from client %s\n", clients[index].client_id);
+                        game->players--;
                         eliminate_client(index);
                     } else if (read == 0) { // Client disconnected
                         if (game->status == WAITING) {
+                            game->players--;
                             disconnect_client(index);
                             break;
                         } else if (clients[index].client_fd != -1) {
                             printf("Client %s has left the game\n", clients[index].client_id);
+                            game->players--;
                             eliminate_client(index);
                             break;
                         }
