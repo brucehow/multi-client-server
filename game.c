@@ -110,15 +110,15 @@ response message_handler(char message[], int index) {
 }
 
 void new_round() {
+    int ready = 0;
     int ready_required = game->players;
-    int timeout = 2; // 2 seconds timeout
     int time = 0;
 
     // Check whether all the clients have sent their packet
-    while (time < POLLING_RATE * timeout) {
-        int ready = 0;
+    while (time < POLLING_RATE * MOVE_TIMEOUT) {
         for (int i = 0; i < game->max_players; i++) {
-            if (clients[i].client_fd != -1) {
+            // Check non-eliminated clients, with no or timeout results
+            if (clients[i].client_fd != -1 && (clients[i].result == NONE || clients[i].result == TIMEOUT)) {
                 if (clients[i].rec[0] == '\0') {
                     clients[i].result = TIMEOUT; // Indicate those who have not sent
                 } else {
@@ -138,9 +138,13 @@ void new_round() {
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
             if (clients[i].result == TIMEOUT) {
-                printf("Client %s failed to send a move\n", clients[i].client_id);
-                game->players--;
-                eliminate_client(i);
+                clients[i].lives--;
+                printf("Client %s failed to send a move and lost a life (%d lives)\n", clients[i].client_id, clients[i].lives);
+                clients[i].result = FAIL; // No longer eliminated as per spec changes
+                if (clients[i].lives == 0) {
+                    clients[i].result = ELIM;
+                    game->players--;
+                }
             } else if (clients[i].result == ELIM) {
                 game->players--;
             } else if (clients[i].result == FAIL) {
@@ -161,17 +165,16 @@ void new_round() {
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {
             if (game->players == 1 && clients[i].result != ELIM) {
-                //printf("1 player remaining\n\nWinner! Client %s has won!\n", clients[i].client_id);
-                // client is the winner
                 continue;
             } else if (game->players == 0) { // Draw case
-                send_packet(VICT, i); // send victory packet instead of ELIM
+                send_packet(VICT, i); // Send a victory packet instead of ELIM
             } else {
                 if (clients[i].result == ELIM) {
                     eliminate_client(i);
                 }
                 send_packet(clients[i].result, i);
             }
+            clients[i].result = NONE;
         }
     }
     printf("%d players remaining\n", game->players);
@@ -205,7 +208,7 @@ void new_round() {
 void init_game() {
     printf("Starting game\n");
     usleep((int) (1E6 / POLLING_RATE));
-    srand((int) (time(NULL) * getpid())); // Seeds rand
+    srand(time(NULL) * getpid()); // Seeds rand
 
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd != -1) {

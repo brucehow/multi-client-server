@@ -23,12 +23,13 @@
 #define POLLING_RATE 30
 #define OPT_LIST "p:m:l:"
 #define MAX_PACKET_OVERFLOW 3
+#define MOVE_TIMEOUT 5
 
 /**
  * Enumerations used for consistent packet messaging and server statuses
  */
 typedef enum {WAITING, PLAYING, FINISHED, EXIT} server_status;
-typedef enum {WELCOME, START, PASS, FAIL, ELIM, VICT, REJECT, CANCEL, TIMEOUT} response;
+typedef enum {WELCOME, START, PASS, FAIL, ELIM, VICT, REJECT, CANCEL, TIMEOUT, NONE} response;
 
 /**
  * Global variables used with mmap for memory sharing

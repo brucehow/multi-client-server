@@ -13,11 +13,12 @@ void disconnect_client(int index) {
 int add_client(int client_fd) {
     for (int i = 0; i < game->max_players; i++) {
         if (clients[i].client_fd == -1) {
-            srand(client_fd); // Seeds rand
+            srand(time(NULL) * getpid() * client_fd); // Seeds rand
             sprintf(clients[i].client_id, "%d%02d", rand() % 10, i);
             clients[i].client_fd = client_fd;
             clients[i].lives = game->start_lives;
             clients[i].unexpected = 0;
+            clients[i].result = NONE;
             memset(clients[i].rec, '\0', PACKET_SIZE);
 
             // Send welcome packet

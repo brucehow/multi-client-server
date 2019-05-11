@@ -144,11 +144,12 @@ void connection_listener() {
                         }
                     } else { // Received a packet
                         if (clients[index].rec[0] != '\0') { // Not expecting packet
-                            printf("Client %s sent an unexcepted packet\n", clients[index].client_id);
                             if (++(clients[index].unexpected) == MAX_PACKET_OVERFLOW) {
                                 printf("Client %s sent too many unexpected packets\n", clients[index].client_id);
                                 game->players--;
                                 eliminate_client(index);
+                            } else {
+                                printf("Client %s sent an unexcepted packet\n", clients[index].client_id);
                             }
                             while (clients[index].rec[0] != '\0') {
                                 usleep((int) (1E6 / POLLING_RATE));
