@@ -23,7 +23,7 @@
 #define POLLING_RATE 30
 #define OPT_LIST "p:m:l:"
 #define MAX_PACKET_OVERFLOW 3
-#define MOVE_TIMEOUT 5
+#define MOVE_TIMEOUT 3
 
 /**
  * Enumerations used for consistent packet messaging and server statuses

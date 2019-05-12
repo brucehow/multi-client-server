@@ -138,21 +138,27 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    int timeout = 30; // 30 seconds timeout
+    int timeout = 30; // 30 seconds timeout default
     int time = 0;
 
-    printf("The game will commence in 30 seconds\n");
+    if (game->max_players >= 45) {
+        timeout = 60; // Reasonable timeout for more max players
+    }
+
+    printf("The game will commence in %d seconds\n", timeout);
     while (time < POLLING_RATE * timeout && game->players != game->max_players) {
         time++;
         usleep((int) (1E6 / POLLING_RATE));
-        switch(time) {
-            case POLLING_RATE*10: printf("The game will commence in 20 seconds\n"); break;
-            case POLLING_RATE*20: printf("The game will commence in 10 seconds\n"); break;
-            case POLLING_RATE*25: printf("The game will commence in 5 seconds\n"); break;
-            case POLLING_RATE*26: printf("The game will commence in 4 seconds\n"); break;
-            case POLLING_RATE*27: printf("The game will commence in 3 seconds\n"); break;
-            case POLLING_RATE*28: printf("The game will commence in 2 seconds\n"); break;
-            case POLLING_RATE*29: printf("The game will commence in 1 second\n"); break;
+        int remaining = (timeout * POLLING_RATE) - time;
+        switch (remaining) {
+            case 30*POLLING_RATE: printf("The game will commence in 30 seconds\n"); break;
+            case 20*POLLING_RATE: printf("The game will commence in 20 seconds\n"); break;
+            case 10*POLLING_RATE: printf("The game will commence in 10 seconds\n"); break;
+            case 5*POLLING_RATE: printf("The game will commence in 5 seconds\n"); break;
+            case 4*POLLING_RATE: printf("The game will commence in 4 seconds\n"); break;
+            case 3*POLLING_RATE: printf("The game will commence in 3 seconds\n"); break;
+            case 2*POLLING_RATE: printf("The game will commence in 2 seconds\n"); break;
+            case 1*POLLING_RATE: printf("The game will commence in 1 second\n"); break;
         }
     }
     if (game->players < 4) {
