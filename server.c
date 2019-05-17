@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
     }
     printf("------------------------------\n\nServer started with the above settings\n");
 
-    // Listen for connections and start lobby timeout
+    // Listen for connections in the background
     switch (fork()) {
         case -1: {
             fprintf(stderr, "Fork failed\n");
@@ -138,6 +138,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Lobby timeout starts
     int timeout = 30; // 30 seconds timeout default
     int time = 0;
 
