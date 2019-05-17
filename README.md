@@ -24,16 +24,16 @@ The program can be ran with or without parameters. There are 3 optional paramete
 ## Implementations
 All four tiers in the project specification have been implemented into this program with the exception of tier 1's single player gameplay (>= 4 players required). Below is a breakdown on this program's implementations in tiers.
 
-#### Tier 1 - If everything works as you expect
+### Tier 1 - If everything works as you expect
  The program is able to receive client connections and send game initialisation messages. Clients are updated when the game has started. The server is able to receive moves from players and has a 3 seconds timeout; if a player fails to make a move, they lose a life. The game-state is updated based on the moves from all players and the server is able to gracefully tear down when a game has finished.
 
-#### Tier 2 - Scaling up
+### Tier 2 - Scaling up
 The game will only start if there are at least 4 players in the lobby. Players are also only updated about their own gate state (e.g PASS, FAIL etc.).
 
-#### Tier 3 - Connection issues
+### Tier 3 - Connection issues
 Players that exit mid-game are automatically eliminated from the server. If the winning player or all remaining players exit mid-game, there are no winners. Players attempting to join mid-game are automatically rejected and disconnected.
 
-#### Tier 4 - Game logic extended
+### Tier 4 - Game logic extended
 Players who send incorrectly formed move packets are eliminated from the game. The server is also able to identify cheaters, to a certain extent. Players are eliminated on the following conditions:
 * **Client ID Spoofing** - If a player sends a packet with a client ID that differs to their assigned ID.
 * **Impossible Packets** - If a player sends a packet that is 'valid' but impossible (e.g *'100,MOVE,CON,9'*).
