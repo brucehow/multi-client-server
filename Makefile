@@ -1,5 +1,8 @@
 # Makefile for the CITS3002 2019 project running on the Mac
 #
+# The program can be built using the `make` bash command
+# Please view README.md for more info on its usage
+#
 # Name: Bruce How (22242664)
 
 PROGNAME = server
