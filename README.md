@@ -1,13 +1,14 @@
 # Multi-Client-Server
 <b>Authors:</b> Bruce How ([22242664](https://github.com/brucehow/))
 
-This application is simple RNG Battle Royale game (server) that is coded in C and is based on the fundamentals of socket programming. It is apart of the 2019 CITS3002 Computer Networks Project.
+This program is simple RNG Battle Royale game (server) that is coded in C and is based on the fundamentals of socket programming.
+
+It is apart of the 2019 CITS3002 Computer Networks Project.
 
 ## Installation
-Use the provided `Makefile` to compile the program. This will create an executable `server` file which will run the program.
+Use the provided `Makefile` to compile the program which will create an executable `server` program.
 ```bash
 make install
-./server
 ```
 
 ## Usage
@@ -16,16 +17,62 @@ The program can be ran with or without parameters. There are 3 optional paramete
 * `-l` to set the starting number of lives for all players. This must be a value between 1 and 99 inclusive. If not specified, the starting number of lives for all players is 3.
 * `-m` to specify the maximum number of players allowed in the game. Must be a value between 4 and 99 inclusive. If not specified, the maximum number of players is 10.
 
+Please run this program on a Mac as it has only been tested on Mac environments.
+
 **Example**
 ```bash
 ./server -p 8888 -m 50 -l 10
 ```
 
+## Output
+The program's output is displayed through print statements. The server and game configurations will be displayed once the program is run. This allows server creators to verify that their parameters are as expected. An example is shown below.
+```
+Configurations
+Server port: 8888 (specified)
+Player lives: 10 (specified)
+Maximum players: 10 (default)
+```
+Each round is displayed in a similar format to the example provided below. Players will either make it through the round without losing a life, lose a life, and or be eliminated. The dice rolls are also displayed beside the round number, and the remaining player count is displayed at the end of every round.
+```
+Round 19 (Dice rolled 5 and 6 - Total 11)
+Client 601 made it through (1 lives)
+Client 703 lost a life (1 lives)
+Client 204 lost a life (0 lives)
+Client 207 made it through (3 lives)
+Client 608 made it through (4 lives)
+Client 204 has been eliminated
+4 players remaining
+```
+
+At the end of every round, the server will check for a winner and output the appropriate message. In the case where there is a draw, all remaining clients are winners.
+
+```
+Round 8 (Dice rolled 3 and 6 - Total 9)
+Client 007 lost a life (0 lives)
+Client 109 lost a life (0 lives)
+0 players remaining
+
+Draw! Client 007, Client 109 have won!
+```
+
+In the edge case where all remaining players have disconnected, there will be no winners.
+
+```
+Round 81 (Dice rolled 1 and 3 - Total 4)
+Client 103 has left the game
+Client 701 has left the game
+Client 103 has been eliminated
+Client 701 has been eliminated
+0 players remaining
+
+Draw! There are no winners
+```
+
 ## Implementations
-All four tiers in the project specification have been implemented into this program with the exception of tier 1's single player gameplay (>= 4 players required). Teir breakdown on this program's implementations can be found below.
+All four tiers in the project specification have been implemented into this program with the exception of tier 1's single player gameplay (>= 4 players required). Tier breakdown on this program's implementations can be found below.
 
 ### Tier 1 - If everything works as you expect
- The program is able to receive client connections and send game initialisation messages. Clients are updated when the game has started as the server will send a '*START,%d,%d*' packet (%d being a 1 or 2 digit number). The server is able to receive moves from players and has a timeout value of 3; if a player fails to make a move, they lose a life. The game-state is updated based on the moves from all players and the server is able to gracefully tear down when a game has finished.
+The program is able to receive client connections and send game initialisation messages. Clients are updated when the game has started as the server will send a '*START,%d,%d*' packet (%d being a 1 or 2 digit number). The server is able to receive moves from players and has a timeout value of 3; if a player fails to make a move, they lose a life. The game-state is updated based on the moves from all players and the server is able to gracefully tear down when a game has finished.
 
 ### Tier 2 - Scaling up
 The game will only start if there are at least 4 players in the lobby. Players are also only updated about their own gate state (e.g PASS, FAIL etc.).

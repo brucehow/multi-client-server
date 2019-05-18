@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Print the configurations
-    printf("------- Server Configs -------\n");
+    printf("Configurations\n");
     if (custom_port) {
         printf("Server port: %d (specified)\n", port);
     } else {
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
     } else {
         printf("Maximum players: %d (default)\n", game->max_players);
     }
-    printf("------------------------------\n\nServer started with the above settings\n");
+    printf("\n\nServer started with the above settings\n");
 
     // Listen for connections in the background
     switch (fork()) {
