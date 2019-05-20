@@ -159,7 +159,6 @@ void connection_listener() {
                     }
                     usleep((int) (1E6 / POLLING_RATE));
                 }
-
                 close(client_fd);
                 free(buf);
                 exit(EXIT_SUCCESS);
