@@ -28,7 +28,9 @@ Please run this program on a Mac as it has only been tested on Mac environments.
 All four tiers in the project specification have been implemented into this program with the exception of tier 1's single player requirement as the game can only start when there are more than 4 players. Tier breakdown on this program's implementations can be found below.
 
 ### Tier 1 - If everything works as you expect
-The program is able to receive client connections and send game initialisation messages. Clients are updated when the game has started as the server will send a '*START,%d,%d*' packet (%d being a 1 or 2 digit number). The server is able to receive moves from players and has a timeout value of 3 seconds; if a player fails to make a move, they lose a life. The game-state is updated based on the moves from all players and the server is able to gracefully tear down when a game has finished.
+The program is able to receive client connections and send game initialisation messages. Clients are updated when the game has started as the server will send a '*START,%d,%d*' packet (%d being a 1 or 2 digit number). A unique client ID can be easily generated based on the client's index in an array. 0s are pre-padded to this number to ensure that
+
+The server is able to receive moves from players and has a timeout value of 3 seconds; if a player fails to make a move, they lose a life. The game-state is updated based on the moves from all players and the server is able to gracefully tear down when a game has finished.
 
 ### Tier 2 - Scaling up
 The game will only start if there are at least 4 players in the lobby. Packets are sent to players to update them only about their own state (e.g PASS, FAIL etc.). These packets can be modified accordingly based on the state of the game. For example, if a player loses a life but is the only remaining player, then a *VICT* packet is sent instead.
