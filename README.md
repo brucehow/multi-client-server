@@ -1,4 +1,4 @@
-# Multi-Client-Server
+# Multi-Client-Server &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/brucehow/Multi-Client-Server/blob/master/LICENSE) [![mac version](https://img.shields.io/badge/macOS-10.12.6-blue.svg)]()
 <b>Authors:</b> Bruce How ([22242664](https://github.com/brucehow/))
 
 This program is simple RNG Battle Royale game (server) that is coded in C and is based on the fundamentals of socket programming.
