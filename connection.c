@@ -148,6 +148,12 @@ void connection_listener() {
                                 printf("Client %s sent too many unexpected packets\n", clients[index].client_id);
                                 game->players--;
                                 eliminate_client(index);
+                                // Send elimination packet instantly
+                                if (send(client_fd, clients[index].send, strlen(clients[index].send), 0) < 0) {
+                                    perror(__func__);
+                                    fprintf(stderr, "Failed to send packet (%s) to client %s\n", clients[index].send, clients[index].client_id);
+                                }
+                                break;
                             } else {
                                 printf("Client %s sent an unexcepted packet\n", clients[index].client_id);
                             }
