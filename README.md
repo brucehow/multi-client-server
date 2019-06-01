@@ -98,3 +98,6 @@ Client 701 has been eliminated
 
 Draw! There are no winners
 ```
+## License
+
+[MIT License](https://github.com/brucehow/Multi-Client-Server/blob/master/LICENSE), Copyright © Bruce How 2019
